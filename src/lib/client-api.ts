@@ -1,5 +1,7 @@
 'use client';
 
+import type { FilmDiscoveryRequest, FilmDiscoveryResponse } from './film-discovery';
+
 import type { SearchResponse, SearchStreamEvent, SourceSearchOutcome, VideoDetail, DoubanResponse, BangumiCalendarResponse, AuthStatusResponse, SourceConfig, SearchResultItem, LivePlaylistResponse, LiveEpgResponse, SourceListPayload, QualityProbeItem, QualityProbeResult } from './types';
 
 /**
@@ -106,6 +108,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  filmDiscovery: (body: FilmDiscoveryRequest, signal?: AbortSignal) =>
+    request<FilmDiscoveryResponse>('/api/film-discovery', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal,
+    }),
+
   status: () => request<AuthStatusResponse>('/api/status'),
 
   login: (password: string) =>
