@@ -7,6 +7,7 @@ import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import type { DoubanItem } from '@/lib/types';
 import { DoubanCard } from './video-card';
+import { OfficialWatchModal } from './official-watch-modal';
 
 const MOVIE_TAGS = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动画'];
 const TV_TAGS = ['热门', '美剧', '英剧', '韩剧', '日剧', '国产剧', '港剧', '日本动画', '综艺', '纪录片'];
@@ -17,10 +18,25 @@ export function RecommendSection({ onPick }: { onPick: (title: string) => void }
   const doubanEnabled = useAppStore((s) => s.doubanEnabled);
   const recommendSource = useAppStore((s) => s.recommendSource);
 
+  const [selected, setSelected] = useState<DoubanItem | null>(null);
   if (!doubanEnabled) return null;
-  if (recommendSource === 'bangumi') return <BangumiView onPick={onPick} />;
-  if (recommendSource === 'hot-list') return <HotListView onPick={onPick} />;
-  return <DoubanView onPick={onPick} />;
+  const list = recommendSource === 'bangumi'
+    ? <BangumiView onSelect={setSelected} />
+    : recommendSource === 'hot-list'
+      ? <HotListView onSelect={setSelected} />
+      : <DoubanView onSelect={setSelected} />;
+  return (
+    <>
+      {list}
+      {selected && (
+        <OfficialWatchModal
+          item={selected}
+          onClose={() => setSelected(null)}
+          onSearch={() => { onPick(selected.title); setSelected(null); }}
+        />
+      )}
+    </>
+  );
 }
 
 /**
@@ -28,7 +44,7 @@ export function RecommendSection({ onPick }: { onPick: (title: string) => void }
  * 一次性渲染全部条目：数据本就一次拉全（50 条），卡片图片又是 lazy 加载，
  * 视口外的图不会请求，因此不需要「加载更多」这类本地切片分页来打断浏览。
  */
-function DoubanView({ onPick }: { onPick: (title: string) => void }) {
+function DoubanView({ onSelect }: { onSelect: (item: DoubanItem) => void }) {
   const [type, setType] = useState<'movie' | 'tv'>('movie');
   const [tag, setTag] = useState('热门');
 
@@ -85,7 +101,7 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
           {items.map((item) => (
-            <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
+            <DoubanCard key={item.id} item={item} onClick={() => onSelect(item)} />
           ))}
         </div>
       )}
@@ -94,7 +110,7 @@ function DoubanView({ onPick }: { onPick: (title: string) => void }) {
 }
 
 /** Bangumi 每日放送：星期筛选，一次拉全量无分页 */
-function BangumiView({ onPick }: { onPick: (title: string) => void }) {
+function BangumiView({ onSelect }: { onSelect: (item: DoubanItem) => void }) {
   const [weekday, setWeekday] = useState<number | 'all'>('all');
 
   const query = useQuery({
@@ -129,7 +145,7 @@ function BangumiView({ onPick }: { onPick: (title: string) => void }) {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
           {items.map((item) => (
-            <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
+            <DoubanCard key={item.id} item={item} onClick={() => onSelect(item)} />
           ))}
         </div>
       )}
@@ -147,7 +163,7 @@ const HOT_LISTS = [
 ];
 
 /** 影视热榜（60s API）：豆瓣五个周榜 + 百度热播剧，chips 切换 */
-function HotListView({ onPick }: { onPick: (title: string) => void }) {
+function HotListView({ onSelect }: { onSelect: (item: DoubanItem) => void }) {
   const [listId, setListId] = useState(HOT_LISTS[0].id);
 
   const query = useQuery({
@@ -174,7 +190,7 @@ function HotListView({ onPick }: { onPick: (title: string) => void }) {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
           {items.map((item) => (
-            <DoubanCard key={item.id} item={item} onClick={() => onPick(item.title)} />
+            <DoubanCard key={item.id} item={item} onClick={() => onSelect(item)} />
           ))}
         </div>
       )}
